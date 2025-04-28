@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="index.js" defer></script>
+    <link rel="shortcut icon" href="./calculator.png" type="image/x-icon" />
+    <title>Calculator</title>
+  </head>
+  <body class="bg-stone-950 grid place-items-center h-screen">
+    <div
+      id="container"
+      class="bg-neutral-900 border-zinc-900 border-2 w-[340px] rounded-lg subpixel-antialiased select-all"
+    >
+      <div class="text-white">
+        <div
+          id="screen-top"
+          class="h-16 w-full border-white p-2 flex items-end justify-end overflow-hidden"
+        >
+          <p id="last-text" class="text-lg opacity-60"></p>
+        </div>
+        <div
+          id="screen-bottom"
+          class="h-16 w-full border-white p-2 flex items-end justify-end overflow-hidden"
+        >
+          <p id="main-text" class="text-4xl"></p>
+        </div>
+      </div>
+
+      <div
+        id="buttonGrid"
+        class="h-80 border-white flex justify-between flex-wrap p-1 pb-0 select-none"
+      ></div>
+    </div>
+  </body>
+</html>
