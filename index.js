@@ -49,13 +49,13 @@ const keys = [
   },
   { name: "zero", symbol: "0", type: "digit" },
   { name: "decimal", symbol: ".", type: "digit" },
-  { name: "equalTo", symbol: "=", action: evaluate },
+  { name: "equalTo", symbol: "=", type: "equals", action: evaluate },
 ];
 
 function createButtons() {
   const keyWidth = 320 / 4;
 
-  keys.forEach((key, _index) => {
+  keys.forEach((key) => {
     const btn = document.createElement("button");
     btn.id = key.name;
     btn.innerText = key.symbol;
@@ -129,42 +129,61 @@ function processInput(eventId) {
     key.action();
   } else if (key.type === "operator") {
     handleOperator(key.symbol);
+  } else if (key.type === "equals") {
+    evaluate();
   }
-  console.log(key.symbol);
+
   updateScreen();
 }
 
 function handleNumber(n) {
-  if (currentInput.length < 15) {
-    if (currentInput === "0" && n !== ".") {
-      currentInput = n;
-    } else if (n === "." && currentInput.includes(".")) {
-      return; // prevent repeated decimals
-    } else {
-      currentInput += `${n}`;
-    }
+  if (resultDisplayed) {
+    currentInput = "0";
+    resultDisplayed = false;
+  }
+
+  if (currentInput === "0" && n !== ".") {
+    currentInput = n;
+  } else if (n === "." && currentInput.includes(".")) {
+    return;
+  } else {
+    currentInput += n;
   }
 
   updateScreen();
 }
 
 function handleOperator(op) {
-  if (parseFloat(currentInput) !== 0 || currentInput.includes(".")) {
+  if (resultDisplayed) {
+    resultDisplayed = false;
+  }
+
+  if (currentInput) {
     previousInput = `${currentInput} ${op}`;
-    currentInput = "0";
     currentOperator = op;
+    currentInput = "0";
   }
 }
 
 function updateScreen() {
-  mainText.textContent = currentInput;
+  let displayValue = currentInput.toString();
+
+  // Truncate overly long outputs
+  if (displayValue.length > 17) {
+    displayValue = displayValue.slice(0, 17);
+  }
+
+  mainText.textContent = displayValue;
   prevText.textContent = previousInput;
   resizeText();
 }
 
 function getSquare() {
   previousInput = `(${currentInput})²`;
-  currentInput = currentInput ** 2;
+  const result = Number(currentInput) ** 2;
+  currentInput = formatNumber(result);
+  resultDisplayed = true;
+  updateScreen();
 }
 
 function getSquareRoot() {
@@ -181,23 +200,56 @@ function getReciprocal() {
   currentInput = 1 / currentInput;
 }
 
-function percentage(n) {
-  const match = previousInput?.match(/([\d.]+)\s*([+\-×÷])/);
-
-  if (match) {
-    const prevNum = parseFloat(match[1]);
-    currentInput = (prevNum * n) / 100;
+function percentage() {
+  if (previousInput && currentOperator) {
+    const prevValue = parseFloat(previousInput);
+    const currValue = parseFloat(currentInput);
+    currentInput = ((prevValue * currValue) / 100).toString();
+    previousInput = `${prevValue} ${currentOperator} ${currValue}%`;
   } else {
     previousInput = `${currentInput}%`;
-    currentInput = parseFloat(n) / 100;
+    currentInput = (parseFloat(currentInput) / 100).toString();
   }
+  updateScreen();
 }
 
 function evaluate() {
-  if (currentInput && previousInput === "") {
-    previousInput = `${currentInput} =`;
+  if (!currentOperator || previousInput === "") return;
+
+  const prev = parseFloat(previousInput);
+  const curr = parseFloat(currentInput);
+
+  let result;
+
+  switch (currentOperator) {
+    case "+":
+      result = prev + curr;
+      break;
+    case "–":
+      result = prev - curr;
+      break;
+    case "×":
+      result = prev * curr;
+      break;
+    case "÷":
+      if (curr === 0) {
+        currentInput = "Can't divide by 0";
+        previousInput = "";
+        currentOperator = null;
+        document
+          .getElementById("clear")
+          .classList.add("border-1", "border-red-500");
+        updateScreen();
+        return;
+      }
+      result = prev / curr;
+      break;
+    default:
+      return;
   }
-  updateScreen();
+  previousInput = `${previousInput} ${currentInput}`;
+  currentInput = result.toString();
+  resultDisplayed = true;
 }
 
 function clearAll() {
@@ -205,6 +257,9 @@ function clearAll() {
   previousInput = "";
   operator = null;
   resultDisplayed = false;
+  document
+    .getElementById("clear")
+    .classList.remove("border-1", "border-red-500");
 }
 
 function clearEntry() {
@@ -216,6 +271,16 @@ function backspace() {
   currentInput = currentInput.length > 1 ? currentInput.slice(0, -1) : "0";
 }
 
+function formatNumber(num) {
+  const absNum = Math.abs(num);
+
+  if (absNum < 1e18) {
+    return num.toLocaleString("fullwide", { useGrouping: false });
+  } else {
+    return num.toExponential(6); // fallback with limited precision
+  }
+}
+
 function resizeText() {
   const container = document.getElementById("screen-bottom");
   const text = document.getElementById("main-text");
@@ -224,7 +289,7 @@ function resizeText() {
   text.style.fontSize = `${fontSize}px`;
 
   while (text.scrollWidth > container.clientWidth && fontSize > 10) {
-    fontSize -= 2;
+    fontSize -= 1;
     text.style.fontSize = `${fontSize}px`;
   }
 }
