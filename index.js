@@ -168,7 +168,6 @@ function handleOperator(op) {
 function updateScreen() {
   let displayValue = currentInput.toString();
 
-  // Truncate overly long outputs
   if (displayValue.length > 17) {
     displayValue = displayValue.slice(0, 17);
   }
@@ -205,6 +204,7 @@ function percentage() {
     const prevValue = parseFloat(previousInput);
     const currValue = parseFloat(currentInput);
     currentInput = ((prevValue * currValue) / 100).toString();
+    evaluate();
     previousInput = `${prevValue} ${currentOperator} ${currValue}%`;
   } else {
     previousInput = `${currentInput}%`;
@@ -274,22 +274,9 @@ function backspace() {
 function formatNumber(num) {
   const absNum = Math.abs(num);
 
-  if (absNum < 1e18) {
-    return num.toLocaleString("fullwide", { useGrouping: false });
+  if (absNum < 1e21) {
+    return num.toString(); // Just return the full number string
   } else {
-    return num.toExponential(6); // fallback with limited precision
-  }
-}
-
-function resizeText() {
-  const container = document.getElementById("screen-bottom");
-  const text = document.getElementById("main-text");
-
-  let fontSize = 36;
-  text.style.fontSize = `${fontSize}px`;
-
-  while (text.scrollWidth > container.clientWidth && fontSize > 10) {
-    fontSize -= 1;
-    text.style.fontSize = `${fontSize}px`;
+    return num.toExponential(6).replace(/\.?0+e/, "e");
   }
 }
