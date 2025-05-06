@@ -7,8 +7,11 @@ const prevText = document.querySelector("#prev-text");
 
 let currentInput = "0";
 let previousInput = "";
+let currentOperand = "";
 let currentOperator = null;
 let resultDisplayed = false;
+let mainDisplayText = "";
+let topDisplayText = "";
 
 const keys = [
   { name: "percentage", symbol: "%", type: "action", action: percentage },
@@ -154,39 +157,39 @@ function handleNumber(n) {
 }
 
 function handleOperator(op) {
-  if (resultDisplayed) {
+  if (resultDisplayed && !currentInput) {
     resultDisplayed = false;
   }
 
   if (currentInput) {
-    previousInput = `${currentInput} ${op}`;
+    topDisplayText = `${currentInput} ${op}`;
+    previousInput = currentInput;
     currentOperator = op;
     currentInput = "0";
+    currentOperand = parseFloat(previousInput);
   }
 }
 
 function updateScreen() {
-  let displayValue = currentInput.toString();
+  mainDisplayText = currentInput.toString();
 
-  if (displayValue.length > 17) {
-    displayValue = displayValue.slice(0, 17);
+  if (mainDisplayText.length > 17) {
+    mainDisplayText = mainDisplayText.slice(0, 17);
   }
 
-  mainText.textContent = displayValue;
-  prevText.textContent = previousInput;
-  resizeText();
+  mainText.textContent = mainDisplayText;
+  prevText.textContent = topDisplayText;
 }
 
 function getSquare() {
-  previousInput = `(${currentInput})²`;
+  topDisplayText = `(${currentInput})²`;
   const result = Number(currentInput) ** 2;
   currentInput = formatNumber(result);
-  resultDisplayed = true;
   updateScreen();
 }
 
 function getSquareRoot() {
-  previousInput = `√${currentInput}`;
+  topDisplayText = `√${currentInput}`;
   currentInput = Math.sqrt(currentInput);
 }
 
@@ -196,6 +199,7 @@ function changeSign() {
 
 function getReciprocal() {
   previousInput = currentInput;
+  topDisplayText = previousInput;
   currentInput = 1 / currentInput;
 }
 
@@ -205,9 +209,9 @@ function percentage() {
     const currValue = parseFloat(currentInput);
     currentInput = ((prevValue * currValue) / 100).toString();
     evaluate();
-    previousInput = `${prevValue} ${currentOperator} ${currValue}%`;
+    topDisplayText = `${prevValue} ${currentOperator} ${currValue}%`;
   } else {
-    previousInput = `${currentInput}%`;
+    topDisplayText = `${currentInput}%`;
     currentInput = (parseFloat(currentInput) / 100).toString();
   }
   updateScreen();
@@ -216,45 +220,69 @@ function percentage() {
 function evaluate() {
   if (!currentOperator || previousInput === "") return;
 
-  const prev = parseFloat(previousInput);
-  const curr = parseFloat(currentInput);
+  let prev;
+
+  if (resultDisplayed === true) {
+    prev = parseFloat(currentInput);
+  } else {
+    prev = parseFloat(previousInput);
+    currentOperand = parseFloat(currentInput);
+  }
 
   let result;
 
   switch (currentOperator) {
     case "+":
-      result = prev + curr;
+      result = prev + currentOperand;
       break;
     case "–":
-      result = prev - curr;
+      result = prev - currentOperand;
       break;
     case "×":
-      result = prev * curr;
+      result = prev * currentOperand;
       break;
     case "÷":
-      if (curr === 0) {
+      if (currentOperand === 0 && prev !== 0) {
         currentInput = "Can't divide by 0";
-        previousInput = "";
+        topDisplayText = `${prev} ${currentOperator} ${currentOperand}`;
         currentOperator = null;
         document
           .getElementById("clear")
           .classList.add("border-1", "border-red-500");
-        updateScreen();
         return;
+      } else if (currentOperand === 0 && prev === 0) {
+        currentInput = "Undefined";
+        topDisplayText = `${prev} ${currentOperator} ${currentOperand}`;
+        currentOperator = null;
+        document
+          .getElementById("clear")
+          .classList.add("border-1", "border-red-500");
+        return;
+      } else {
+        result = prev / currentOperand;
       }
-      result = prev / curr;
+
       break;
     default:
       return;
   }
-  previousInput = `${previousInput} ${currentInput}`;
-  currentInput = result.toString();
+
+  // to be fixed
+  currentInput = result;
+  topDisplayText = `${prev} ${currentOperator} ${currentOperand}`;
+
+  console.log("prev " + previousInput);
+  console.log("curr " + currentInput);
+  console.log("opr " + currentOperand);
+
   resultDisplayed = true;
+  updateScreen();
 }
 
 function clearAll() {
-  currentInput = "0";
-  previousInput = "";
+  currentInput = "";
+  previousInput = 0;
+  topDisplayText = "";
   operator = null;
   resultDisplayed = false;
   document
@@ -263,7 +291,7 @@ function clearAll() {
 }
 
 function clearEntry() {
-  currentInput = "0";
+  currentInput = "";
   resultDisplayed = false;
 }
 
@@ -274,9 +302,9 @@ function backspace() {
 function formatNumber(num) {
   const absNum = Math.abs(num);
 
-  if (absNum < 1e21) {
-    return num.toString(); // Just return the full number string
+  if (absNum < 1e18) {
+    return num.toLocaleString("fullwide", { useGrouping: false });
   } else {
-    return num.toExponential(6).replace(/\.?0+e/, "e");
+    return num.toExponential(6); // fallback with limited precision
   }
 }
