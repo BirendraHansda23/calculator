@@ -157,7 +157,7 @@ function handleNumber(n) {
 }
 
 function handleOperator(op) {
-  if (resultDisplayed && !currentInput) {
+  if (resultDisplayed) {
     resultDisplayed = false;
   }
 
@@ -267,13 +267,8 @@ function evaluate() {
       return;
   }
 
-  // to be fixed
   currentInput = result;
   topDisplayText = `${prev} ${currentOperator} ${currentOperand}`;
-
-  console.log("prev " + previousInput);
-  console.log("curr " + currentInput);
-  console.log("opr " + currentOperand);
 
   resultDisplayed = true;
   updateScreen();
